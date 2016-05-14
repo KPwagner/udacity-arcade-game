@@ -45,8 +45,14 @@ var Engine = (function(global) {
         /* Call our update/render functions, pass along the time delta to
          * our update function since it may be used for smooth animation.
          */
+
+        // clearRect clears the top of the canvas, so the top of the players
+        // sprite doesn't remain in the part of the background png that is
+        // transparent.
+        ctx.clearRect(0, 0, 505, 50);
         update(dt);
         render();
+
 
         /* Set our lastTime variable which is used to determine the time delta
          * for the next time this function is called.
@@ -80,7 +86,8 @@ var Engine = (function(global) {
      */
     function update(dt) {
         updateEntities(dt);
-        // checkCollisions();
+        checkCollisions();
+        checkGemCapture();
     }
 
     /* This is called by the update function and loops through all of the
@@ -95,6 +102,47 @@ var Engine = (function(global) {
             enemy.update(dt);
         });
         player.update();
+    }
+
+    function checkCollisions() {
+        // checkCollisions checks the position of each enemy onject in the
+        // allEnemies array against the current position of the player object.
+        // If the two object overlap one another, the player sprite is sent back
+        // to its starting position.
+        var xMin,
+            xMax,
+            yMin,
+            yMax,
+            buffer;
+        xMin = player.x;
+        xMax = player.x + xOffset;
+        yMin = player.y;
+        yMax = player.y + yOffset;
+        buffer = 25;
+        for (var i=0; i<allEnemies.length; i++){
+            var enemyX = allEnemies[i].x;
+            var enemyY = allEnemies[i].y;
+            if (enemyX + xOffset - buffer >= xMin &&
+                enemyX + buffer <= xMax &&
+                enemyY + yOffset >= yMax &&
+                enemyY <= yMin){
+                    player.x = player.startPosX;
+                    player.y = player.startPosY;
+            }
+        }
+    }
+
+    function checkGemCapture() {
+        // checkGemCapture checks if the player sprite is in the same 'space' as
+        // the gem object. If so, the game is reset, and the player is alerted that
+        // they have won.
+        var playerX = player.x;
+        var playerY = player.y;
+        var gemX = gem.x;
+        if (playerY < 60 && playerX < gemX && playerX + xOffset > gemX){
+            reset();
+            alert("You Won! Would you like to play again?");
+        }
     }
 
     /* This function initially draws the "game level", it will then call
@@ -152,6 +200,7 @@ var Engine = (function(global) {
         });
 
         player.render();
+        gem.render();
     }
 
     /* This function does nothing but it could have been a good place to
@@ -159,7 +208,12 @@ var Engine = (function(global) {
      * those sorts of things. It's only called once by the init() method.
      */
     function reset() {
-        // noop
+        allEnemies = [];
+        genEnemies("top");
+        genEnemies("middle");
+        genEnemies("bottom");
+        player = new Player();
+        gem = new Gem();
     }
 
     /* Go ahead and load all of the images we know we're going to need to
@@ -171,7 +225,8 @@ var Engine = (function(global) {
         'images/water-block.png',
         'images/grass-block.png',
         'images/enemy-bug.png',
-        'images/char-boy.png'
+        'images/char-boy.png',
+        'images/gem-green.png'
     ]);
     Resources.onReady(init);
 
